@@ -1,0 +1,3 @@
+Patched UnitSystem._collect_factor_and_dimension to treat dimensionally-equivalent dimensions as compatible when adding terms (uses DimensionSystem.equivalent_dims to compare dimensions, e.g. acceleration*time == velocity).
+
+No changes detected to generate a patch.

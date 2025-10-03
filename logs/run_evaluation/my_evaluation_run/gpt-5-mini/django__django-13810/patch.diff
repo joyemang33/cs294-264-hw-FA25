@@ -1,0 +1,27 @@
+diff --git a/django/core/handlers/base.py b/django/core/handlers/base.py
+index 8e8c3da06a..9018a37193 100644
+--- a/django/core/handlers/base.py
++++ b/django/core/handlers/base.py
+@@ -50,13 +50,21 @@ class BaseHandler:
+             else:
+                 middleware_is_async = middleware_can_async
+             try:
+-                # Adapt handler, if needed.
++                # Adapt handler, if needed. Save originals so we can restore them
++                # if the middleware signals it should be skipped by raising
++                # MiddlewareNotUsed. Without restoring the previous handler the
++                # chain can become "poisoned" (async/sync state changed).
++                old_handler = handler
++                old_handler_is_async = handler_is_async
+                 handler = self.adapt_method_mode(
+                     middleware_is_async, handler, handler_is_async,
+                     debug=settings.DEBUG, name='middleware %s' % middleware_path,
+                 )
+                 mw_instance = middleware(handler)
+             except MiddlewareNotUsed as exc:
++                # Restore previous handler state to avoid poisoning the chain.
++                handler = old_handler
++                handler_is_async = old_handler_is_async
+                 if settings.DEBUG:
+                     if str(exc):
+                         logger.debug('MiddlewareNotUsed(%r): %s', middleware_path, exc)

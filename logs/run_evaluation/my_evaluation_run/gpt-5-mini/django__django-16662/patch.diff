@@ -1,0 +1,3 @@
+Fixed migration writer import ordering: ensure plain "import module" statements are placed before "from module import ..." statements when generating migration files (adds a sort key _import_sort_key and uses it to order imports).
+
+No changes detected to generate a patch.

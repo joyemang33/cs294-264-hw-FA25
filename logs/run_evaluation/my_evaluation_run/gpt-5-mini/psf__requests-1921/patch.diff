@@ -1,0 +1,61 @@
+diff --git a/pytest_out.txt b/pytest_out.txt
+new file mode 100644
+index 0000000..840cd9c
+--- /dev/null
++++ b/pytest_out.txt
+@@ -0,0 +1,55 @@
++.....F..............F................................................... [ 61%]
++..............................................                           [100%]
++=================================== FAILURES ===================================
++_________________ RequestsTestCase.test_DIGEST_HTTP_200_OK_GET _________________
++
++self = <test_requests.RequestsTestCase testMethod=test_DIGEST_HTTP_200_OK_GET>
++
++    def test_DIGEST_HTTP_200_OK_GET(self):
++    
++        auth = HTTPDigestAuth('user', 'pass')
++        url = httpbin('digest-auth', 'auth', 'user', 'pass')
++    
++        r = requests.get(url, auth=auth)
++        assert r.status_code == 200
++    
++        r = requests.get(url)
++        assert r.status_code == 401
++    
++        s = requests.session()
++        s.auth = HTTPDigestAuth('user', 'pass')
++        r = s.get(url)
++>       assert r.status_code == 200
++E       assert 502 == 200
++E        +  where 502 = <Response [502]>.status_code
++
++test_requests.py:295: AssertionError
++________________ RequestsTestCase.test_conflicting_post_params _________________
++
++self = <test_requests.RequestsTestCase testMethod=test_conflicting_post_params>
++
++    def test_conflicting_post_params(self):
++        url = httpbin('post')
++        with open('requirements.txt') as f:
++>           pytest.raises(ValueError, "requests.post(url, data='[{\"some\": \"data\"}]', files={'some': f})")
++E           TypeError: 'requests.post(url, data=\'[{"some": "data"}]\', files={\'some\': f})' object (type: <class 'str'>) must be callable
++
++test_requests.py:387: TypeError
++=============================== warnings summary ===============================
++requests/packages/urllib3/_collections.py:7
++  /testbed/requests/packages/urllib3/_collections.py:7: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
++    from collections import MutableMapping
++
++requests/sessions.py:12
++  /testbed/requests/sessions.py:12: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
++    from collections import Mapping
++
++test_requests.py::RequestsTestCase::test_BASICAUTH_TUPLE_HTTP_200_OK_GET
++  /testbed/requests/models.py:164: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
++    if isinstance(hook, collections.Callable):
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED test_requests.py::RequestsTestCase::test_DIGEST_HTTP_200_OK_GET - asse...
++FAILED test_requests.py::RequestsTestCase::test_conflicting_post_params - Typ...
++2 failed, 116 passed, 3 warnings in 87.33s (0:01:27)

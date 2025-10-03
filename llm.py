@@ -1,3 +1,5 @@
+import os
+from openai import OpenAI
 from abc import ABC, abstractmethod
 
 
@@ -5,7 +7,7 @@ class LLM(ABC):
     """Abstract base class for Large Language Models."""
 
     @abstractmethod
-    def generate(self, prompt: str) -> str:
+    def query(self, prompt: str) -> str:
         """
         Generate a response from the LLM given a prompt.
         Must include any required stop-token logic at the caller level.
@@ -26,9 +28,18 @@ class OpenAIModel(LLM):
         # TODO(student): Initialize your OpenAI client or chosen LLM provider here.
         self.stop_token = stop_token
         self.model_name = model_name
-        raise NotImplementedError("OpenAIModel.__init__ must be implemented by the student")
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        print(f"Using OpenAI API key: {self.api_key}")
+        self.client = OpenAI(api_key=self.api_key)
 
-    def generate(self, prompt: str) -> str:
+
+    def query(self, prompt: str) -> str:
         # TODO(student): Call the model, obtain text, and ensure the stop token is present.
         # Return the raw text including the terminal stop token required by the parser.
-        raise NotImplementedError("OpenAIModel.generate must be implemented by the student")
+        response = self.client.responses.create(
+            model="gpt-5",
+            tools=[{ "type": "web_search_preview" }],
+            input=prompt
+        )
+        print(response.output_text)
+        return response.output_text

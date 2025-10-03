@@ -1,0 +1,8 @@
+Use subprocess.run and PGPASSWORD for client in postgres backend
+
+Replaced creation of a temporary .pgpass file with passing the password to psql
+via the PGPASSWORD environment variable using subprocess.run(..., env=..., check=True).
+Preserved SIGINT handling to allow psql to abort queries, and restored the original
+SIGINT handler in a finally block.
+
+No changes detected to generate a patch.

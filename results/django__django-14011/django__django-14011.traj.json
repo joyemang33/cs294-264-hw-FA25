@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "*** Begin Patch\n*** Update File: django/core/servers/basehttp.py\n@@\n class ThreadedWSGIServer(ThreadingMixIn, WSGIServer):\n     \"\"\"\n     A version of WSGIServer that handles each request in a new thread.\n     \"\"\"\n+    # Ensure database connections are closed in worker threads after\n+    # handling a request to avoid leaking connections that would prevent\n+    # the test database from being destroyed (see #22414).\n+    def process_request_thread(self, request, client_address):\n+        \"\"\"\n+        ThreadingMixIn.process_request_thread runs in the spawned worker\n+        thread and is responsible for calling finish_request and\n+        shutdown_request. Wrap the superclass implementation so that once\n+        the request handling is finished we explicitly close any Django\n+        database connections opened in this thread.\n+        \"\"\"\n+        try:\n+            super().process_request_thread(request, client_address)\n+        finally:\n+            # Import locally to avoid module-level import cycles during\n+            # Django startup.\n+            try:\n+                from django.db import connections\n+            except Exception:\n+                # If Django isn't available (very early import stage), don't\n+                # attempt to close connections.\n+                return\n+            # Close any open DB connections on this thread to avoid leaks\n+            # that can prevent test database teardown.\n+            connections.close_all()\n*** End Patch\n\nNo changes detected to generate a patch.",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "django__django-14011"
+}

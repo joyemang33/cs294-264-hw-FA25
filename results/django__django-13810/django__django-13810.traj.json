@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "diff --git a/django/core/handlers/base.py b/django/core/handlers/base.py\nindex 8e8c3da06a..9018a37193 100644\n--- a/django/core/handlers/base.py\n+++ b/django/core/handlers/base.py\n@@ -50,13 +50,21 @@ class BaseHandler:\n             else:\n                 middleware_is_async = middleware_can_async\n             try:\n-                # Adapt handler, if needed.\n+                # Adapt handler, if needed. Save originals so we can restore them\n+                # if the middleware signals it should be skipped by raising\n+                # MiddlewareNotUsed. Without restoring the previous handler the\n+                # chain can become \"poisoned\" (async/sync state changed).\n+                old_handler = handler\n+                old_handler_is_async = handler_is_async\n                 handler = self.adapt_method_mode(\n                     middleware_is_async, handler, handler_is_async,\n                     debug=settings.DEBUG, name='middleware %s' % middleware_path,\n                 )\n                 mw_instance = middleware(handler)\n             except MiddlewareNotUsed as exc:\n+                # Restore previous handler state to avoid poisoning the chain.\n+                handler = old_handler\n+                handler_is_async = old_handler_is_async\n                 if settings.DEBUG:\n                     if str(exc):\n                         logger.debug('MiddlewareNotUsed(%r): %s', middleware_path, exc)\n",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "django__django-13810"
+}

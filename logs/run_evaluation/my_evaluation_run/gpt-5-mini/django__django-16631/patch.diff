@@ -1,0 +1,3 @@
+Clarify SECRET_KEY_FALLBACKS docs: explain salted_hmac and get_session_auth_hash do not use fallbacks by default, and adjust rotation guidance.
+
+No changes detected to generate a patch.

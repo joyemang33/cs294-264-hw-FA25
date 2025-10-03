@@ -42,7 +42,8 @@ class SWEEnvironment:
         Generate a patch from the result (for SWE-Bench)
         """
         try:
-            patch_output = self.env.execute("git add -A && git diff --cached")
+            patch_output = self.env.execute("git add -A && git diff --cached")['output']
+            # print("Generated patch:\n", patch_output)
             if patch_output.strip():
                 return patch_output
             else:

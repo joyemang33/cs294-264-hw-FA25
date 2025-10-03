@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "I'll modify HashedFilesMixin.post_process to collect and yield each original filename only once, with its final hashed name and processed flag. This avoids duplicate yields across multiple post-processing passes.\n\nNo changes detected to generate a patch.",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "django__django-14053"
+}

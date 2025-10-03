@@ -1,0 +1,3 @@
+Fixed makemigrations so allow_migrate() is called only with models belonging to the app being checked, by using apps.get_app_config(app_label).get_models() instead of incorrectly calling apps.get_models(app_label).
+
+No changes detected to generate a patch.

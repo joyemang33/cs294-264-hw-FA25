@@ -1,0 +1,5 @@
+----VALUE----
+Implemented Point.__rmul__ to make number * Point behave like Point * number.
+Added regression test to ensure commutativity of scalar-point multiplication in addition.
+
+No changes detected to generate a patch.

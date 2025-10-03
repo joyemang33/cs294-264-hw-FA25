@@ -1,0 +1,11 @@
+Fixed: avoid decoding binary request body with ascii
+
+Change summary:
+- In requests/models.py, RequestEncodingMixin._encode_params:
+  * Return bytes payloads unchanged instead of calling to_native_string on them.
+  * Only convert str/unicode to native string.
+
+Rationale:
+Calling to_native_string on bytes in Python 3 attempts to decode using the default encoding ('ascii'), which fails for arbitrary non-ASCII binary payloads (e.g. u"ööö".encode("utf-8")). Leaving bytes unchanged preserves binary payloads and fixes the regression introduced in 2.9 (see issue #2844).
+
+No changes detected to generate a patch.

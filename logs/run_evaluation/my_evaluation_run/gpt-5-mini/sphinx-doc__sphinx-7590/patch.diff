@@ -1,0 +1,61 @@
+diff --git a/sphinx/domains/cpp.py b/sphinx/domains/cpp.py
+index fe52d881d..1c5376c7f 100644
+--- a/sphinx/domains/cpp.py
++++ b/sphinx/domains/cpp.py
+@@ -4662,18 +4662,56 @@ class DefinitionParser(BaseParser):
+                       integer_literal_re, octal_literal_re]:
+             pos = self.pos
+             if self.match(regex):
++                # skip standard suffix letters like u, U, l, L, f, F
+                 while self.current_char in 'uUlLfF':
+                     self.pos += 1
++                # optional user-defined literal suffix (identifier)
++                # we use udl_suffix_re from sphinx.util.cfamily
++                try:
++                    from sphinx.util.cfamily import udl_suffix_re
++                except Exception:
++                    udl_suffix_re = None
++                if udl_suffix_re is not None:
++                    m = udl_suffix_re.match(self.definition, self.pos)
++                    if m:
++                        self.pos = m.end()
+                 return ASTNumberLiteral(self.definition[pos:self.pos])
+ 
+         string = self._parse_string()
+         if string is not None:
++            # accept optional UDL suffix after string literal: "foo"s
++            try:
++                from sphinx.util.cfamily import udl_suffix_re
++            except Exception:
++                udl_suffix_re = None
++            if udl_suffix_re is not None:
++                m = udl_suffix_re.match(self.definition, self.pos)
++                if m:
++                    # include suffix in the returned token text
++                    startPos = self.pos - len(string)
++                    self.pos = m.end()
++                    return ASTStringLiteral(self.definition[startPos:self.pos])
+             return ASTStringLiteral(string)
+ 
+         # character-literal
+         if self.match(char_literal_re):
+             prefix = self.last_match.group(1)  # may be None when no prefix
+             data = self.last_match.group(2)
++            # optional UDL suffix after char literal: '\'a'c
++            try:
++                from sphinx.util.cfamily import udl_suffix_re
++            except Exception:
++                udl_suffix_re = None
++            if udl_suffix_re is not None:
++                m = udl_suffix_re.match(self.definition, self.pos)
++                if m:
++                    # include suffix in the literal text
++                    literal_start = self.pos - len(self.last_match.group(0))
++                    self.pos = m.end()
++                    try:
++                        return ASTCharLiteral(prefix, data)
++                    except UnicodeDecodeError as e:
++                        self.fail("Can not handle character literal. Internal error was: %s" % e)
+             try:
+                 return ASTCharLiteral(prefix, data)
+             except UnicodeDecodeError as e:

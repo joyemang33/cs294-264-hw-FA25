@@ -1,0 +1,3 @@
+I updated sphinx/ext/napoleon/docstring.py to improve the partitioning of a field line on its colon so that single-colons inside inline code/xref spans are not treated as separators. This makes parsing of patterns like ":param dict(str, str) opc_meta: (optional)" work correctly, producing the expected type/name split.
+
+No changes detected to generate a patch.

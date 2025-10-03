@@ -1,0 +1,60 @@
+diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py
+index de3fb01d1..d4dd707b4 100644
+--- a/astropy/utils/misc.py
++++ b/astropy/utils/misc.py
+@@ -528,16 +528,47 @@ class InheritDocstrings(type):
+                 not key.startswith('_'))
+ 
+         for key, val in dct.items():
+-            if (inspect.isfunction(val) and
+-                is_public_member(key) and
+-                val.__doc__ is None):
++            if not is_public_member(key):
++                continue
++
++            # Determine the underlying function-like object for this member,
++            # handling plain functions/methods, staticmethod/classmethod, and
++            # property (use fget). If it's not one of these, skip it.
++            func = None
++            if inspect.isfunction(val) or inspect.ismethod(val):
++                func = val
++            elif isinstance(val, (staticmethod, classmethod)):
++                func = val.__func__
++            elif isinstance(val, property):
++                func = val.fget
++
++            if func is None:
++                continue
++
++            # Only try to inherit if there's no docstring on the underlying function.
++            if getattr(func, '__doc__', None) is None:
+                 for base in cls.__mro__[1:]:
+-                    super_method = getattr(base, key, None)
+-                    if super_method is not None:
+-                        val.__doc__ = super_method.__doc__
++                    super_attr = getattr(base, key, None)
++                    if super_attr is None:
++                        continue
++
++                    # Extract the underlying function from the base attribute
++                    if inspect.isfunction(super_attr) or inspect.ismethod(super_attr):
++                        super_func = super_attr
++                    elif isinstance(super_attr, (staticmethod, classmethod)):
++                        super_func = super_attr.__func__
++                    elif isinstance(super_attr, property):
++                        super_func = super_attr.fget
++                    else:
++                        super_func = None
++
++                    if super_func is not None and getattr(super_func, '__doc__', None):
++                        # Set the docstring on the underlying function object.
++                        # For properties, the property's __doc__ reflects fget.__doc__,
++                        # so setting fget.__doc__ is sufficient.
++                        func.__doc__ = super_func.__doc__
+                         break
+-
+-        super().__init__(name, bases, dct)
++super().__init__(name, bases, dct)
+ 
+ 
+ class OrderedDescriptor(metaclass=abc.ABCMeta):

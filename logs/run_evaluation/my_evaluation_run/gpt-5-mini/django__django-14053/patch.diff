@@ -1,0 +1,3 @@
+I'll modify HashedFilesMixin.post_process to collect and yield each original filename only once, with its final hashed name and processed flag. This avoids duplicate yields across multiple post-processing passes.
+
+No changes detected to generate a patch.

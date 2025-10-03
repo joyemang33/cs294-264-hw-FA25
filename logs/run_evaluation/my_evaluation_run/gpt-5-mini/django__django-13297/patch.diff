@@ -1,0 +1,23 @@
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index ea5baca08d..7ff2afc4c3 100644
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -159,8 +159,17 @@ class TemplateView(TemplateResponseMixin, ContextMixin, View):
+     def get(self, request, *args, **kwargs):
+         # RemovedInDjango40Warning: when the deprecation ends, replace with:
+         #   context = self.get_context_data()
++        # Build lazy-wrapped URL kwargs which will warn when accessed from
++        # templates. However, pass the original (eager) kwargs to
++        # get_context_data() to preserve backwards compatibility for view
++        # code (e.g. DB lookups). After the view's get_context_data() runs,
++        # only insert the lazy wrappers for keys not explicitly provided by
++        # the view so that view-provided values take precedence.
+         context_kwargs = _wrap_url_kwargs_with_deprecation_warning(kwargs)
+-        context = self.get_context_data(**context_kwargs)
++        context = self.get_context_data(**kwargs)
++        for key, value in context_kwargs.items():
++            if key not in context:
++                context[key] = value
+         return self.render_to_response(context)
+ 
+ 

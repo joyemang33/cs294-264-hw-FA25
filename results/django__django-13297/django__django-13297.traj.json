@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "diff --git a/django/views/generic/base.py b/django/views/generic/base.py\nindex ea5baca08d..7ff2afc4c3 100644\n--- a/django/views/generic/base.py\n+++ b/django/views/generic/base.py\n@@ -159,8 +159,17 @@ class TemplateView(TemplateResponseMixin, ContextMixin, View):\n     def get(self, request, *args, **kwargs):\n         # RemovedInDjango40Warning: when the deprecation ends, replace with:\n         #   context = self.get_context_data()\n+        # Build lazy-wrapped URL kwargs which will warn when accessed from\n+        # templates. However, pass the original (eager) kwargs to\n+        # get_context_data() to preserve backwards compatibility for view\n+        # code (e.g. DB lookups). After the view's get_context_data() runs,\n+        # only insert the lazy wrappers for keys not explicitly provided by\n+        # the view so that view-provided values take precedence.\n         context_kwargs = _wrap_url_kwargs_with_deprecation_warning(kwargs)\n-        context = self.get_context_data(**context_kwargs)\n+        context = self.get_context_data(**kwargs)\n+        for key, value in context_kwargs.items():\n+            if key not in context:\n+                context[key] = value\n         return self.render_to_response(context)\n \n \n",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "django__django-13297"
+}
