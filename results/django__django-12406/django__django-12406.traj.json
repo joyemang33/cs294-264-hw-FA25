@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "diff --git a/django/forms/models.py b/django/forms/models.py\nindex dafc11f995..aa2372da28 100644\n--- a/django/forms/models.py\n+++ b/django/forms/models.py\n@@ -159,6 +159,15 @@ def fields_for_model(model, fields=None, exclude=None, widgets=None,\n         kwargs = {}\n         if widgets and f.name in widgets:\n             kwargs['widget'] = widgets[f.name]\n+        widget = kwargs.get('widget')\n+        try:\n+            from django.forms.widgets import RadioSelect\n+        except Exception:\n+            RadioSelect = None\n+\n+        if RadioSelect is not None and widget is not None and isinstance(widget, RadioSelect):\n+            if getattr(f, 'blank', False) is False:\n+                kwargs['empty_label'] = None\n         if localized_fields == ALL_FIELDS or (localized_fields and f.name in localized_fields):\n             kwargs['localize'] = True\n         if labels and f.name in labels:\n",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "django__django-12406"
+}

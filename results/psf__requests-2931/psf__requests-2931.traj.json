@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "diff --git a/requests/models.py b/requests/models.py\nindex 9c624d3..59108f0 100644\n--- a/requests/models.py\n+++ b/requests/models.py\n@@ -80,7 +80,13 @@ class RequestEncodingMixin(object):\n         if parameters are supplied as a dict.\n         \"\"\"\n \n-        if isinstance(data, (str, bytes)):\n+        # If data is a bytes object, treat it as binary data and\n+        # return it unchanged. Calling to_native_string on bytes\n+        # attempts to decode using ASCII by default which will fail\n+        # for non-ASCII binary payloads (see issue #2930).\n+        if isinstance(data, bytes):\n+            return data\n+        if isinstance(data, str):\n             return to_native_string(data)\n         elif hasattr(data, 'read'):\n             return data\n",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "psf__requests-2931"
+}

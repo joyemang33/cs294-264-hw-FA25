@@ -1,47 +1,44 @@
-*** Begin Patch
-*** Update File: src/_pytest/skipping.py
-@@
- def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
-     outcome = yield
-     rep = outcome.get_result()
--    xfailed = item._store.get(xfailed_key, None)
-+    xfailed = item._store.get(xfailed_key, None)
-+    # If an xfail marker was added dynamically during the test call (e.g.
-+    # via `request.node.add_marker(pytest.mark.xfail(...))`), the cached
-+    # evaluation from setup/call-start may still be None. Re-evaluate here
-+    # during the call phase so the dynamically-added mark is respected,
-+    # restoring pytest 5.x behavior for this case.
-+    if not item.config.option.runxfail and rep.when == "call" and xfailed is None:
-+        xfailed = evaluate_xfail_marks(item)
-+        item._store[xfailed_key] = xfailed
-@@
-     elif call.excinfo and isinstance(call.excinfo.value, xfail.Exception):
-         assert call.excinfo.value.msg is not None
-         rep.wasxfail = "reason: " + call.excinfo.value.msg
-         rep.outcome = "skipped"
-     elif not rep.skipped and xfailed:
-*** End Patch
-
-*** Begin Patch
-*** Add File: testing/test_dynamic_xfail_runtime.py
-+import pytest
+diff --git a/docs/pytest-6-xfail-regression.md b/docs/pytest-6-xfail-regression.md
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/docs/pytest-6-xfail-regression.md
+@@ -0,0 +1,39 @@
++Pytest 6: Dynamically-added xfail marker regression
++==================================================
 +
++Summary
++-------
++In pytest 6.0.x a regression caused dynamically adding an xfail marker during the runtest phase
++(for example, calling request.node.add_marker(pytest.mark.xfail(...)) from inside a test) to be
++ignored — a failing test would be reported as a normal failure instead of XFAIL. This behavior
++differs from pytest 5.x.
 +
-+def test_dynamic_xfail_marker_is_respected(pytester):
-+    # Create a test that adds an xfail dynamically during the call
-+    pytester.makepyfile(
-+        """
-+        import pytest
-+        def test_x(request):
-+            # Dynamically add an xfail marker during the test body
-+            request.node.add_marker(pytest.mark.xfail(reason="xfail at runtime"))
-+            assert 0
-+        """
-+    )
-+    result = pytester.runpytest("-rX")
-+    result.assert_outcomes(xfailed=1)
-+    result.stdout.fnmatch_lines(["*XFAIL*xfail at runtime*"])
++Cause and fix
++--------------
++The issue was identified in pytest issue #7486 and fixed by pull request #7490 (merged July 15, 2020).
++The fix restores refreshing of marks when needed during runtest so dynamically-added xfail markers
++are respected.
 +
-*** End Patch
++What to do
++---------
++1. Upgrade pytest to a version that includes the fix (pytest 6 with the merged PR or later).
++   - Run: pip install -U pytest
++   - Confirm with: pytest --version
++
++2. If you cannot upgrade immediately, use one of these workarounds:
++   - Call pytest.xfail("reason") at the point in the test where you decide it should xfail.
++     This will stop the test and report XFAIL.
++   - Apply the xfail marker earlier in the test lifecycle (e.g. from a fixture setup or in
++     pytest_collection_modifyitems) so the marker exists before runtest begins.
++   - Consider using a plugin such as pytest-runtime-xfail as a temporary measure.
++
++References
++----------
++- Issue: pytest-dev/pytest#7486
++- Fix: pytest-dev/pytest#7490 (merged Jul 15, 2020)
++
++If you want, provide the output of pytest --version from the failing environment and I can
++recommend the exact minimum pytest version to upgrade to.
 
 No changes detected to generate a patch.

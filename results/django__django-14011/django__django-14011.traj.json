@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "diff --git a/django/test/testcases.py b/django/test/testcases.py\nindex 92f566b7b0..3415d1483c 100644\n--- a/django/test/testcases.py\n+++ b/django/test/testcases.py\n@@ -31,6 +31,14 @@ from django.core.management import call_command\n from django.core.management.color import no_style\n from django.core.management.sql import emit_post_migrate_signal\n from django.core.servers.basehttp import ThreadedWSGIServer, WSGIRequestHandler\n+\n+class NonDaemonThreadedWSGIServer(ThreadedWSGIServer):\n+    \"\"\"Threaded WSGI server that waits for handler threads to finish on shutdown.\n+    This prevents live-server request threads from being left alive during test DB\n+    teardown (which can keep DB connections open).\n+    \"\"\"\n+    daemon_threads = False\n+\n from django.db import DEFAULT_DB_ALIAS, connection, connections, transaction\n from django.forms.fields import CharField\n from django.http import QueryDict\n@@ -1476,7 +1484,7 @@ class _MediaFilesHandler(FSFilesHandler):\n class LiveServerThread(threading.Thread):\n     \"\"\"Thread for running a live http server while the tests are running.\"\"\"\n \n-    server_class = ThreadedWSGIServer\n+    server_class = NonDaemonThreadedWSGIServer\n \n     def __init__(self, host, static_handler, connections_override=None, port=0):\n         self.host = host\n",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "django__django-14011"
+}

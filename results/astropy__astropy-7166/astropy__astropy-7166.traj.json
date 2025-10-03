@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py\nindex de3fb01d1..09a3a3785 100644\n--- a/astropy/utils/misc.py\n+++ b/astropy/utils/misc.py\n@@ -527,15 +527,30 @@ class InheritDocstrings(type):\n                  and len(key) > 4) or\n                 not key.startswith('_'))\n \n-        for key, val in dct.items():\n-            if (inspect.isfunction(val) and\n-                is_public_member(key) and\n-                val.__doc__ is None):\n-                for base in cls.__mro__[1:]:\n-                    super_method = getattr(base, key, None)\n-                    if super_method is not None:\n-                        val.__doc__ = super_method.__doc__\n-                        break\n+        for key, val in list(dct.items()):\n+            if not is_public_member(key):\n+                continue\n+\n+            # Functions/methods\n+            if inspect.isfunction(val):\n+                if val.__doc__ is None:\n+                    for base in cls.__mro__[1:]:\n+                        super_method = getattr(base, key, None)\n+                        if super_method is not None:\n+                            val.__doc__ = super_method.__doc__\n+                            break\n+\n+            # Properties: need to create a new property with the inherited\n+            # docstring (property objects don't expose a writable __doc__)\n+            elif isinstance(val, property):\n+                if val.__doc__ is None:\n+                    for base in cls.__mro__[1:]:\n+                        super_prop = getattr(base, key, None)\n+                        if isinstance(super_prop, property) and super_prop.__doc__ is not None:\n+                            # create a new property preserving fget/fset/fdel but\n+                            # using the base property's docstring\n+                            dct[key] = property(val.fget, val.fset, val.fdel, super_prop.__doc__)\n+                            break\n \n         super().__init__(name, bases, dct)\n \n",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "astropy__astropy-7166"
+}

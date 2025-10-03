@@ -1,0 +1,12 @@
+{
+  "info": {
+    "submission": "diff --git a/django/views/generic/base.py b/django/views/generic/base.py\nindex ea5baca08d..d185c0729b 100644\n--- a/django/views/generic/base.py\n+++ b/django/views/generic/base.py\n@@ -157,10 +157,19 @@ class TemplateResponseMixin:\n class TemplateView(TemplateResponseMixin, ContextMixin, View):\n     \"\"\"Render a template.\"\"\"\n     def get(self, request, *args, **kwargs):\n-        # RemovedInDjango40Warning: when the deprecation ends, replace with:\n-        #   context = self.get_context_data()\n-        context_kwargs = _wrap_url_kwargs_with_deprecation_warning(kwargs)\n-        context = self.get_context_data(**context_kwargs)\n+        # Call get_context_data with the actual URL kwargs (unwrapped). The\n+        # URL kwarg wrapping is only applied when exposing values to the\n+        # template context so that deprecation warnings are emitted if the\n+        # template reads bare URL kwargs. This avoids passing SimpleLazyObject\n+        # instances into user view logic (which can break ORM parameter\n+        # binding).\n+        context = self.get_context_data(**kwargs)\n+        # Now add wrapped URL kwargs into the context for template-level\n+        # deprecation warnings, but do not overwrite keys already provided by\n+        # get_context_data.\n+        for k, v in _wrap_url_kwargs_with_deprecation_warning(kwargs).items():\n+            if k not in context:\n+                context[k] = v\n         return self.render_to_response(context)\n \n \n",
+    "config": {
+      "agent": "swe-agent",
+      "model": "gpt-5-mini"
+    }
+  },
+  "messages": [],
+  "trajectory_format": "mini-swe-agent-1",
+  "instance_id": "django__django-13297"
+}
