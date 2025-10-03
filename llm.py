@@ -37,7 +37,7 @@ class OpenAIModel(LLM):
         # TODO(student): Call the model, obtain text, and ensure the stop token is present.
         # Return the raw text including the terminal stop token required by the parser.
         response = self.client.responses.create(
-            model="gpt-5",
+            model=self.model_name,
             tools=[{ "type": "web_search_preview" }],
             input=prompt
         )
