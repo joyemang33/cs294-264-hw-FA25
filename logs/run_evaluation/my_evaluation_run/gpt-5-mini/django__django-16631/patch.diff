@@ -1,3 +1,57 @@
-Clarify SECRET_KEY_FALLBACKS docs: explain salted_hmac and get_session_auth_hash do not use fallbacks by default, and adjust rotation guidance.
-
-No changes detected to generate a patch.
+diff --git a/django/contrib/auth/__init__.py b/django/contrib/auth/__init__.py
+index 155330c596..91d82dead9 100644
+--- a/django/contrib/auth/__init__.py
++++ b/django/contrib/auth/__init__.py
+@@ -202,6 +202,17 @@ def get_user(request):
+                 session_hash_verified = session_hash and constant_time_compare(
+                     session_hash, user.get_session_auth_hash()
+                 )
++                # If not verified with the current SECRET_KEY, try fallbacks and upgrade.
++                if session_hash and not session_hash_verified and hasattr(user, "get_session_auth_fallback_hash"):
++                    for expected in user.get_session_auth_fallback_hash():
++                        if constant_time_compare(session_hash, expected):
++                            # Upgrade: rotate the session key and store the auth hash
++                            # computed with the current SECRET_KEY so future requests
++                            # don't rely on the fallback.
++                            request.session.cycle_key()
++                            request.session[HASH_SESSION_KEY] = user.get_session_auth_hash()
++                            session_hash_verified = True
++                            break
+                 if not session_hash_verified:
+                     request.session.flush()
+                     user = None
+diff --git a/django/contrib/auth/base_user.py b/django/contrib/auth/base_user.py
+index 5ee30bf59c..9002a06028 100644
+--- a/django/contrib/auth/base_user.py
++++ b/django/contrib/auth/base_user.py
+@@ -12,6 +12,7 @@ from django.contrib.auth.hashers import (
+     make_password,
+ )
+ from django.db import models
++from django.conf import settings
+ from django.utils.crypto import get_random_string, salted_hmac
+ from django.utils.deprecation import RemovedInDjango51Warning
+ from django.utils.translation import gettext_lazy as _
+@@ -142,6 +143,22 @@ class AbstractBaseUser(models.Model):
+             algorithm="sha256",
+         ).hexdigest()
+ 
++
++    def get_session_auth_fallback_hash(self):
++        """
++        Yield HMAC hexdigests of the password field using each secret in
++        settings.SECRET_KEY_FALLBACKS. Used to validate sessions created
++        with a previous SECRET_KEY during key rotation.
++        """
++        key_salt = "django.contrib.auth.models.AbstractBaseUser.get_session_auth_hash"
++        for secret in (getattr(settings, "SECRET_KEY_FALLBACKS", []) or []):
++            yield salted_hmac(
++                key_salt,
++                self.password,
++                secret=secret,
++                algorithm="sha256",
++            ).hexdigest()
++
+     @classmethod
+     def get_email_field_name(cls):
+         try:

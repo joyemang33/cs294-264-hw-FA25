@@ -1,5 +1,20 @@
-----VALUE----
-Implemented Point.__rmul__ to make number * Point behave like Point * number.
-Added regression test to ensure commutativity of scalar-point multiplication in addition.
+You’ve hit old SymPy behavior: earlier versions implemented Point * scalar but not scalar * Point. 
+
+- Your working line uses Point.__mul__ (point2*2.0), which existed.
+- The failing line would need Point.__rmul__ (2.0*point2). Without it, SymPy leaves a symbolic Mul(2.0, Point2D(...)), and Point.__add__ can’t add that to a Point, hence the error.
+
+Fix
+- Upgrade SymPy to version 1.5 or newer (pip install -U sympy). From 1.5 onward Point.__rmul__ exists, so both orders work:
+  p1 + 2*p2
+  p1 + p2*2
+
+If you can’t upgrade, use a workaround
+- Keep right-multiplication: p1 + p2*2
+- Or temporary monkey‑patch:
+  from sympy.geometry import Point
+  Point.__rmul__ = Point.__mul__
+
+Tip: Check your version:
+import sympy; print(sympy.__version__)
 
 No changes detected to generate a patch.

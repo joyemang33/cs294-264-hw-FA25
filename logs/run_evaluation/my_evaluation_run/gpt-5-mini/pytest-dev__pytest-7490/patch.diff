@@ -1,13 +1,47 @@
-Re-evaluate xfail marks at report time so dynamically-added xfail markers are honored.
+*** Begin Patch
+*** Update File: src/_pytest/skipping.py
+@@
+ def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
+     outcome = yield
+     rep = outcome.get_result()
+-    xfailed = item._store.get(xfailed_key, None)
++    xfailed = item._store.get(xfailed_key, None)
++    # If an xfail marker was added dynamically during the test call (e.g.
++    # via `request.node.add_marker(pytest.mark.xfail(...))`), the cached
++    # evaluation from setup/call-start may still be None. Re-evaluate here
++    # during the call phase so the dynamically-added mark is respected,
++    # restoring pytest 5.x behavior for this case.
++    if not item.config.option.runxfail and rep.when == "call" and xfailed is None:
++        xfailed = evaluate_xfail_marks(item)
++        item._store[xfailed_key] = xfailed
+@@
+     elif call.excinfo and isinstance(call.excinfo.value, xfail.Exception):
+         assert call.excinfo.value.msg is not None
+         rep.wasxfail = "reason: " + call.excinfo.value.msg
+         rep.outcome = "skipped"
+     elif not rep.skipped and xfailed:
+*** End Patch
 
-- src/_pytest/skipping.py: in pytest_runtest_makereport, re-evaluate xfail marks when item._store does not have an xfail evaluation yet (this handles markers added during test execution via request.node.add_marker).
-
-Rationale:
-Previously, xfail marks added during test execution could be missed because xfail evaluation happened earlier (in setup/call). By re-evaluating (and storing) the xfail status in pytest_runtest_makereport when needed, dynamically-added xfail markers are respected and failing tests are reported as xfailed as expected.
-
-Tests:
-- Ran testing/test_skipping.py (all tests passed).
-
-Patch applied.
+*** Begin Patch
+*** Add File: testing/test_dynamic_xfail_runtime.py
++import pytest
++
++
++def test_dynamic_xfail_marker_is_respected(pytester):
++    # Create a test that adds an xfail dynamically during the call
++    pytester.makepyfile(
++        """
++        import pytest
++        def test_x(request):
++            # Dynamically add an xfail marker during the test body
++            request.node.add_marker(pytest.mark.xfail(reason="xfail at runtime"))
++            assert 0
++        """
++    )
++    result = pytester.runpytest("-rX")
++    result.assert_outcomes(xfailed=1)
++    result.stdout.fnmatch_lines(["*XFAIL*xfail at runtime*"])
++
+*** End Patch
 
 No changes detected to generate a patch.

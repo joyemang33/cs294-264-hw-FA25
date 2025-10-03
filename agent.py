@@ -279,6 +279,8 @@ class ReactAgent:
                 if func_name not in self.function_map:
                     raise ValueError(f"Function {func_name} not found in function map.")
                 if func_name == "finish":
+                    if not func_args["result"].startswith("diff --git"):
+                        raise ValueError("finish result must be a git diff starting with 'diff --git'")
                     return func_args["result"]
                 func = self.function_map[func_name]
                 result = func(**func_args)

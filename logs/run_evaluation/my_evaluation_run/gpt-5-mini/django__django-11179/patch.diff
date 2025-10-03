@@ -1,3 +1,19 @@
-Set instance PK to None in the single-object fast-delete path in django/db/models/deletion.py
-
-No changes detected to generate a patch.
+diff --git a/django/db/models/deletion.py b/django/db/models/deletion.py
+index 92fe4affb9..7e35fa539b 100644
+--- a/django/db/models/deletion.py
++++ b/django/db/models/deletion.py
+@@ -277,6 +277,14 @@ class Collector:
+             if self.can_fast_delete(instance):
+                 with transaction.mark_for_rollback_on_error():
+                     count = sql.DeleteQuery(model).delete_batch([instance.pk], self.using)
++                # Keep the in-memory instance consistent with the normal path:
++                # clear its primary key after successful deletion.
++                try:
++                    setattr(instance, model._meta.pk.attname, None)
++                except Exception:
++                    # Be defensive: if something unexpected happens, avoid raising
++                    # since the deletion already succeeded at the DB level.
++                    pass
+                 return count, {model._meta.label: count}
+ 
+         with transaction.atomic(using=self.using, savepoint=False):

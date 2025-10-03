@@ -1,3 +1,31 @@
-Patched UnitSystem._collect_factor_and_dimension to treat dimensionally-equivalent dimensions as compatible when adding terms (uses DimensionSystem.equivalent_dims to compare dimensions, e.g. acceleration*time == velocity).
-
-No changes detected to generate a patch.
+diff --git a/sympy/physics/units/unitsystem.py b/sympy/physics/units/unitsystem.py
+index a436880c4b..87820f407b 100644
+--- a/sympy/physics/units/unitsystem.py
++++ b/sympy/physics/units/unitsystem.py
+@@ -175,7 +175,25 @@ def _collect_factor_and_dimension(self, expr):
+             for addend in expr.args[1:]:
+                 addend_factor, addend_dim = \
+                     self._collect_factor_and_dimension(addend)
+-                if dim != addend_dim:
++                # Compare dimensions by equivalence rather than strict equality.
++                dimsys = self.get_dimension_system()
++                d1 = dim
++                d2 = addend_dim
++                # Treat dimensionless as Dimension(1) for comparison:
++                if dimsys.is_dimensionless(d1):
++                    d1 = Dimension(1)
++                if dimsys.is_dimensionless(d2):
++                    d2 = Dimension(1)
++                try:
++                    equivalent = dimsys.equivalent_dims(d1, d2)
++                except Exception:
++                    # Fall back to comparing dimensional dependency dicts:
++                    try:
++                        equivalent = (dimsys.get_dimensional_dependencies(d1)
++                                      == dimsys.get_dimensional_dependencies(d2))
++                    except Exception:
++                        equivalent = (d1 == d2)
++                if not equivalent:
+                     raise ValueError(
+                         'Dimension of "{}" is {}, '
+                         'but it should be {}'.format(

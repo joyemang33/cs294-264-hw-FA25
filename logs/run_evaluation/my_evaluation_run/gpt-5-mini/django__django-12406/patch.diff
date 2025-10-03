@@ -1,14 +1,41 @@
-Updated ForeignKey.formfield to avoid adding an empty choice for required related fields when the widget is RadioSelect.
-
-Change summary:
-- File modified: django/db/models/fields/related.py
-- Behavior: If a related field has blank=False (required) and a RadioSelect widget is provided (and no explicit empty_label is in kwargs), set empty_label=None so ModelChoiceField does not include the blank "---------" choice. This avoids a selected empty radio option and uses the radio's inherent unfilled state.
-
-Rationale:
-Radio inputs have an inherent "unfilled" state; adding an explicit blank choice for required ForeignKey fields makes the blank option look like a valid selectable choice. Removing the empty choice for required radio widgets produces a clearer UI.
-
-Notes:
-- The implementation detects RadioSelect by checking the widget class name to avoid importing the widgets module in this file. If desired, this can be changed to use isinstance(widget, RadioSelect) with an import.
-- I could not run the test suite in this environment (pytest not found). Please run tests locally to verify.
-
-No changes detected to generate a patch.
+diff --git a/django/forms/models.py b/django/forms/models.py
+index dafc11f995..268eed4b9a 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -1185,10 +1185,35 @@ class ModelChoiceField(ChoiceField):
+                  required=True, widget=None, label=None, initial=None,
+                  help_text='', to_field_name=None, limit_choices_to=None,
+                  **kwargs):
++        """
++        Initialize ModelChoiceField.
++
++        Historically, a required ModelChoiceField with no initial had a blank
++        "---------" choice inserted so Select widgets could display an empty
++        option. However, RadioSelect has an inherent unselected state and
++        rendering a blank radio as a valid choice is misleading. Suppress the
++        empty label for RadioSelect when the field is required and has no
++        initial value so that no blank option is rendered and nothing is
++        preselected on unbound forms.
++        """
++
++        # Determine whether to include an empty label.
+         if required and (initial is not None):
++            # With an explicit initial, no empty option is needed.
+             self.empty_label = None
+         else:
+-            self.empty_label = empty_label
++            # For required fields without an initial, include an empty option
++            # for Select widgets but not for RadioSelect which can be
++            # unselected without a placeholder choice.
++            use_empty_label = True
++            if required and initial is None and widget is not None:
++                try:
++                    from django.forms.widgets import RadioSelect
++                except Exception:  # pragma: no cover - defensive
++                    RadioSelect = None
++                if RadioSelect is not None and isinstance(widget, RadioSelect):
++                    use_empty_label = False
++            self.empty_label = empty_label if use_empty_label else None
+ 
+         # Call Field instead of ChoiceField __init__() because we don't need
+         # ChoiceField.__init__().
